@@ -1,0 +1,15 @@
+# Core app
+Flask==3.0.3
+
+# Optional: analysing a page by URL (/api/analyse with {"url": ...})
+requests==2.32.3
+beautifulsoup4==4.12.3
+
+# Optional: transformer upgrade path (see README, "Going further")
+# spacy==3.7.5
+# transformers==4.44.2
+# torch==2.4.0
+# scikit-learn==1.5.1
+
+# Testing
+pytest==8.3.2

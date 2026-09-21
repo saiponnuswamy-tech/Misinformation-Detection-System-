@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Claim Check — misinformation detection system</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Newsreader:ital,opsz,wght@0,6..72,400;0,6..72,600;1,6..72,400&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
+<style>
+:root{
+  --paper:#EEF1F5; --card:#FFFFFF; --ink:#12212E; --ink-soft:#54637A;
+  --rule:#D5DCE5; --field:#F7F9FB;
+  --low:#146B4F; --mid:#A2660B; --high:#A61B1B;
+  --low-bg:#E3F0EA; --mid-bg:#F6EBD8; --high-bg:#F6E2E1;
+  --focus:#1F5FA8;
+  box-sizing:border-box;
+  padding-top:env(safe-area-inset-top,0px);
+  padding-bottom:env(safe-area-inset-bottom,0px);
+}
+@media (prefers-color-scheme: dark){
+  :root:not([data-theme="light"]){
+    --paper:#0F1720; --card:#17222E; --ink:#E8EEF5; --ink-soft:#9AAABC;
+    --rule:#2A3949; --field:#111B25;
+    --low:#63C9A0; --mid:#E0AE5C; --high:#EF8D85;
+    --low-bg:#14302A; --mid-bg:#33280F; --high-bg:#341C1C;
+    --focus:#7FB2F0;
+  }
+}
+:root[data-theme="dark"]{
+  --paper:#0F1720; --card:#17222E; --ink:#E8EEF5; --ink-soft:#9AAABC;
+  --rule:#2A3949; --field:#111B25;
+  --low:#63C9A0; --mid:#E0AE5C; --high:#EF8D85;
+  --low-bg:#14302A; --mid-bg:#33280F; --high-bg:#341C1C;
+  --focus:#7FB2F0;
+}
+*,*::before,*::after{box-sizing:inherit}
+html{scroll-padding-top:env(safe-area-inset-top,0px);-webkit-text-size-adjust:100%}
+body{
+  margin:0;background:var(--paper);color:var(--ink);
+  font-family:"IBM Plex Sans",system-ui,-apple-system,"Segoe UI",sans-serif;
+  font-size:16px;line-height:1.55;
+}
+.wrap{max-width:1120px;margin:0 auto;padding:clamp(20px,4vw,44px) clamp(16px,4vw,32px) 64px}
+
+header h1{
+  font-family:"Newsreader",Georgia,"Times New Roman",serif;
+  font-weight:600;font-size:clamp(30px,5.2vw,46px);line-height:1.08;
+  margin:0 0 10px;letter-spacing:-.015em;
+}
+header p{margin:0;max-width:60ch;color:var(--ink-soft);font-size:16px}
+.masthead{display:flex;align-items:flex-start;justify-content:space-between;gap:16px;
+  padding-bottom:20px;border-bottom:1px solid var(--rule);margin-bottom:26px}
+#theme{
+  flex:none;background:none;border:1px solid var(--rule);color:var(--ink-soft);
+  border-radius:999px;padding:7px 14px;font:inherit;font-size:13px;cursor:pointer;
+}
+#theme:hover{color:var(--ink)}
+
+.grid{display:grid;grid-template-columns:minmax(0,1.05fr) minmax(0,1fr);gap:26px;align-items:start}
+@media (max-width:860px){.grid{grid-template-columns:1fr}}
+
+.panel{background:var(--card);border:1px solid var(--rule);border-radius:10px;padding:20px}
+.panel h2{
+  font-family:"Newsreader",Georgia,serif;font-weight:600;font-size:21px;
+  margin:0 0 4px;letter-spacing:-.01em;
+}
+.panel .hint{margin:0 0 14px;color:var(--ink-soft);font-size:14px}
+
+textarea{
+  width:100%;min-height:210px;resize:vertical;padding:14px;border-radius:8px;
+  border:1px solid var(--rule);background:var(--field);color:var(--ink);
+  font:inherit;font-size:15.5px;line-height:1.6;
+}
+textarea:focus-visible,button:focus-visible,.chip:focus-visible{
+  outline:2px solid var(--focus);outline-offset:2px
+}
+.row{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-top:14px}
+button.primary{
+  background:var(--ink);color:var(--card);border:0;border-radius:8px;
+  padding:11px 22px;font:inherit;font-weight:600;font-size:15px;cursor:pointer;
+}
+button.primary:hover{opacity:.9}
+button.ghost{background:none;border:1px solid var(--rule);color:var(--ink-soft);
+  border-radius:8px;padding:10px 16px;font:inherit;font-size:14px;cursor:pointer}
+button.ghost:hover{color:var(--ink)}
+.count{margin-left:auto;font-size:13px;color:var(--ink-soft)}
+
+.samples{margin-top:18px;border-top:1px solid var(--rule);padding-top:14px}
+.samples span{font-size:13px;color:var(--ink-soft);display:block;margin-bottom:8px}
+.chips{display:flex;flex-wrap:wrap;gap:8px}
+.chip{background:var(--field);border:1px solid var(--rule);border-radius:999px;
+  padding:6px 13px;font:inherit;font-size:13.5px;color:var(--ink);cursor:pointer}
+.chip:hover{border-color:var(--ink-soft)}
+
+/* verdict */
+.verdict{display:flex;gap:18px;align-items:center;padding-bottom:18px;border-bottom:1px solid var(--rule)}
+.dial{flex:none;position:relative;width:118px;height:118px}
+.dial svg{transform:rotate(-90deg)}
+.dial .num{
+  position:absolute;inset:0;display:flex;flex-direction:column;
+  align-items:center;justify-content:center;
+  font-family:"Newsreader",Georgia,serif;font-weight:600;font-size:34px;line-height:1
+}
+.dial .num small{font-family:"IBM Plex Sans",sans-serif;font-size:11px;font-weight:500;color:var(--ink-soft);margin-top:3px}
+.verdict h3{font-family:"Newsreader",Georgia,serif;font-size:24px;margin:0 0 5px;font-weight:600}
+.verdict p{margin:0;font-size:14.5px;color:var(--ink-soft)}
+.pill{display:inline-block;border-radius:999px;padding:3px 11px;font-size:12.5px;font-weight:600;margin-bottom:7px}
+.low{color:var(--low);background:var(--low-bg)}
+.mid{color:var(--mid);background:var(--mid-bg)}
+.high{color:var(--high);background:var(--high-bg)}
+
+.block{padding-top:16px}
+.block h4{font-size:13px;font-weight:600;color:var(--ink-soft);margin:0 0 10px}
+ul.reasons{list-style:none;margin:0;padding:0}
+ul.reasons li{display:flex;gap:10px;padding:9px 0;border-bottom:1px dotted var(--rule);font-size:14.5px}
+ul.reasons li:last-child{border-bottom:0}
+.mark{flex:none;width:20px;height:20px;border-radius:50%;display:grid;place-items:center;
+  font-size:12px;font-weight:700;margin-top:1px}
+.mark.warn{background:var(--high-bg);color:var(--high)}
+.mark.good{background:var(--low-bg);color:var(--low)}
+.cat{display:block;font-size:12px;color:var(--ink-soft);margin-top:2px;text-transform:capitalize}
+blockquote.claim{
+  margin:0 0 10px;padding:11px 14px;background:var(--field);border-left:3px solid var(--rule);
+  border-radius:0 6px 6px 0;font-family:"Newsreader",Georgia,serif;font-size:16px;line-height:1.45
+}
+blockquote.claim em{display:block;font-family:"IBM Plex Sans",sans-serif;font-style:normal;
+  font-size:12.5px;color:var(--ink-soft);margin-top:6px}
+.empty{color:var(--ink-soft);font-size:14.5px;margin:0}
+.meta{margin-top:18px;padding-top:14px;border-top:1px solid var(--rule);
+  font-size:12.5px;color:var(--ink-soft)}
+.feedback{display:flex;gap:8px;align-items:center;margin-top:10px;font-size:13px;color:var(--ink-soft)}
+.feedback button{background:none;border:1px solid var(--rule);border-radius:6px;
+  padding:5px 11px;font:inherit;font-size:13px;color:var(--ink-soft);cursor:pointer}
+.feedback button:hover{color:var(--ink)}
+footer{margin-top:34px;padding-top:16px;border-top:1px solid var(--rule);
+  font-size:13px;color:var(--ink-soft);max-width:75ch}
+@media (prefers-reduced-motion:no-preference){
+  .dial circle.val{transition:stroke-dasharray .5s ease}
+}
+</style>
+</head>
+<body>
+<div class="wrap">
+
+<div class="masthead">
+  <header>
+    <h1>Claim Check</h1>
+    <p>Paste a forwarded message, post or headline. The analyser pulls out the checkable claims, tests the language and sourcing, and returns a risk score with the reasons behind it.</p>
+  </header>
+  <button id="theme" type="button">Dark</button>
+</div>
+
+<div class="grid">
+
+  <section class="panel">
+    <h2>The message</h2>
+    <p class="hint">Sent to the local analysis server. Nothing is stored unless you leave feedback.</p>
+    <label for="input" class="sr-only" style="position:absolute;left:-9999px">Message to analyse</label>
+    <textarea id="input" placeholder="Paste the text here…" spellcheck="false"></textarea>
+    <div class="row">
+      <button class="primary" id="run" type="button">Analyse</button>
+      <button class="ghost" id="clear" type="button">Clear</button>
+      <span class="count" id="count">0 words</span>
+    </div>
+    <div class="samples">
+      <span>Try one of these:</span>
+      <div class="chips" id="chips"></div>
+    </div>
+  </section>
+
+  <section class="panel" id="report" aria-live="polite">
+    <p class="empty">Results appear here once you analyse something.</p>
+  </section>
+
+</div>
+
+<footer>
+  This is a decision-support tool, not a verdict on truth. A high score means the text carries patterns common in false or manipulative content — it does not prove the claim is false, and a low score does not prove it true. Always check the original source.
+</footer>
+</div>
+
+<script>
+/* ------------------------------------------------------------------
+   The engine lives on the server (detector.py). This page only calls it.
+------------------------------------------------------------------ */
+async function analyse(raw){
+  const res = await fetch("/api/analyse", {
+    method:"POST",
+    headers:{"Content-Type":"application/json"},
+    body: JSON.stringify({ text: raw })
+  });
+  const data = await res.json();
+  if(!res.ok) return { error: data.error || "The server could not analyse that." };
+  return data;
+}
+
+/* ------------------------------------------------------------------
+   Interface
+------------------------------------------------------------------ */
+const SAMPLES=[
+ {label:"Health forward",text:"SHOCKING!! Doctors say this miracle drink CURES diabetes in just 3 days. Big pharma doesn't want you to know this. 100% guaranteed with no side effects. Forward this to everyone in your family before it is deleted!!!"},
+ {label:"News report",text:"According to a statement published by the Ministry of Health on 12 March 2024, 1,240 cases were recorded in the district last month. Data from https://www.who.int/data suggests the figure may fall as vaccination continues, a spokesperson said."},
+ {label:"Money scam",text:"URGENT: Government scheme closing today. Double your money in 30 days with guaranteed returns, completely risk free. Only 50 limited slots left. Register at http://fast-cash-india.xyz and claim your reward NOW!!"},
+ {label:"Half true",text:"Studies show that drinking coffee reduces the risk of heart disease by 40 percent. Everyone knows the mainstream media never reports this. Share it with your friends."}
+];
+
+const $=id=>document.getElementById(id);
+const esc=s=>s.replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"}[c]));
+
+const chips=$("chips");
+SAMPLES.forEach(s=>{
+  const b=document.createElement("button");
+  b.className="chip"; b.type="button"; b.textContent=s.label;
+  b.onclick=()=>{$("input").value=s.text;updateCount();render();};
+  chips.appendChild(b);
+});
+
+function updateCount(){
+  const n=$("input").value.trim()?$("input").value.trim().split(/\s+/).length:0;
+  $("count").textContent=n===1?"1 word":n+" words";
+}
+
+function dial(value,key){
+  const r=52,c=2*Math.PI*r,len=c*value/100;
+  const col=key==="low"?"var(--low)":key==="mid"?"var(--mid)":"var(--high)";
+  return `<div class="dial"><svg width="118" height="118" viewBox="0 0 118 118" aria-hidden="true">
+    <circle cx="59" cy="59" r="${r}" fill="none" stroke="var(--rule)" stroke-width="9"></circle>
+    <circle class="val" cx="59" cy="59" r="${r}" fill="none" stroke="${col}" stroke-width="9"
+      stroke-linecap="round" stroke-dasharray="${len} ${c-len}"></circle>
+  </svg><div class="num" style="color:${col}">${value}<small>out of 100</small></div></div>`;
+}
+
+function reasonList(items,kind){
+  if(!items.length)return "";
+  return `<ul class="reasons">${items.map(i=>{
+    return `<li><span class="mark ${kind==='warn'?'warn':'good'}">${kind==='warn'?'!':'✓'}</span>
+      <span>${esc(i.text)}<span class="cat">${i.category} signal</span></span></li>`;
+  }).join("")}</ul>`;
+}
+
+async function render(){
+  const text=$("input").value;
+  const box=$("report");
+  box.innerHTML='<p class="empty">Analysing…</p>';
+  let r;
+  try{ r = await analyse(text); }
+  catch(e){ box.innerHTML='<p class="empty">Could not reach the server. Is app.py running?</p>'; return; }
+  if(r.error){box.innerHTML=`<p class="empty">${esc(r.error)}</p>`;return;}
+
+  box.innerHTML=`
+    <div class="verdict">
+      ${dial(r.risk_score,r.band_key)}
+      <div>
+        <span class="pill ${r.band_key}">${esc(r.band)}</span>
+        <h3>Risk score ${r.risk_score}</h3>
+        <p>${esc(r.advice)}</p>
+      </div>
+    </div>
+
+    <div class="block">
+      <h4>Checkable claims found</h4>
+      ${r.claims.length?r.claims.map(c=>`<blockquote class="claim">${esc(c.text)}
+        <em>Check-worthiness ${c.checkworthiness} — ${esc(c.reasons.join("; "))}</em></blockquote>`).join("")
+        :`<p class="empty">No clear factual claim was found. The text may be opinion, humour or commentary.</p>`}
+    </div>
+
+    <div class="block">
+      <h4>What raised the score</h4>
+      ${r.warnings.length?reasonList(r.warnings,"warn"):`<p class="empty">No risk signals fired.</p>`}
+    </div>
+
+    <div class="block">
+      <h4>What lowered it</h4>
+      ${r.positives.length?reasonList(r.positives,"good"):`<p class="empty">Nothing in the text counted in its favour.</p>`}
+    </div>
+
+    <div class="meta">${r.word_count} words · ${r.sentence_count} sentences · ${r.warnings.length+r.positives.length} signals evaluated
+      <div class="feedback"><span>Does this look right?</span>
+        <button type="button" data-v="agree">Agree</button>
+        <button type="button" data-v="disagree">Disagree</button>
+      </div>
+    </div>`;
+
+  box.querySelectorAll(".feedback button").forEach(b=>{
+    b.onclick=()=>{
+      fetch("/api/feedback",{method:"POST",headers:{"Content-Type":"application/json"},
+        body:JSON.stringify({text:text,score:r.risk_score,verdict:b.dataset.v})}).catch(()=>{});
+      b.parentElement.innerHTML="<span>Thanks — recorded for the next model update.</span>";
+    };
+  });
+}
+
+$("run").onclick=render;
+$("clear").onclick=()=>{$("input").value="";updateCount();
+  $("report").innerHTML='<p class="empty">Results appear here once you analyse something.</p>';};
+$("input").addEventListener("input",updateCount);
+$("input").addEventListener("keydown",e=>{if((e.metaKey||e.ctrlKey)&&e.key==="Enter")render();});
+
+const themeBtn=$("theme");
+function applyTheme(t){
+  document.documentElement.setAttribute("data-theme",t);
+  themeBtn.textContent=t==="dark"?"Light":"Dark";
+  try{localStorage.setItem("cc-theme",t);}catch(e){}
+}
+try{const saved=localStorage.getItem("cc-theme");if(saved)applyTheme(saved);
+  else themeBtn.textContent=matchMedia("(prefers-color-scheme: dark)").matches?"Light":"Dark";}catch(e){}
+themeBtn.onclick=()=>applyTheme(document.documentElement.getAttribute("data-theme")==="dark"?"light":"dark");
+
+updateCount();
+</script>
+</body>
+</html>
